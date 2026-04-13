@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ProQuiz | Cloud Integrated</title>
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client"></script>
+    <title>ProQuiz | Dynamic Assessment</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -41,12 +39,6 @@
 
         .logo { font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
 
-        .setup-card {
-            max-width: 400px; margin: 40px auto; padding: 25px;
-            background: var(--card-bg); border-radius: 20px; text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-
         .question-card {
             background: var(--card-bg); padding: 24px; border-radius: 16px;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin: 15px auto;
@@ -56,6 +48,7 @@
         .option-label {
             display: flex; align-items: center; padding: 14px; margin-bottom: 12px;
             border: 2px solid var(--border); border-radius: 12px; cursor: pointer;
+            transition: 0.2s;
         }
 
         .option-label:has(input:checked) { border-color: var(--primary); background: rgba(37, 99, 235, 0.05); }
@@ -71,11 +64,14 @@
             text-align: center; width: 90%; max-width: 400px;
         }
 
-        .btn { padding: 14px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; font-size: 0.95rem; width: 100%; transition: 0.2s; }
-        .btn-primary { background: var(--primary); color: white; margin-bottom: 10px; }
-        .btn-drive { background: #ffffff; color: #5f6368; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+        .modal-btns {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 25px;
+        }
+
+        .btn { padding: 14px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
         .btn-success { background: var(--success); color: white; }
+        .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
 
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0;
@@ -86,6 +82,7 @@
         .scoreboard {
             max-width: 500px; margin: 20px auto; padding: 30px;
             background: var(--card-bg); border-radius: 24px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
         }
 
         .hidden { display: none !important; }
@@ -95,34 +92,28 @@
 
     <nav class="navbar">
         <span class="logo">PRO QUIZ</span>
-        <div id="timer" class="hidden" style="font-weight: 700; background: #334155; color: white; padding: 5px 14px; border-radius: 20px;">00:00</div>
-        <button id="theme-toggle" style="background:none; border:none; font-size: 1.2rem;">🌙</button>
+        <div id="timer" class="hidden" style="font-weight: 700; background: #334155; color: white; padding: 5px 14px; border-radius: 20px; font-size: 0.9rem;">00:00</div>
+        <button id="theme-toggle" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">🌙</button>
     </nav>
 
-    <div id="setup-screen" class="setup-card">
-        <h2 style="margin-bottom: 10px;">Cloud Quiz</h2>
-        <p style="opacity: 0.7; margin-bottom: 25px; font-size: 0.9rem;">Start by selecting a file from your device or Google Drive.</p>
-        
-        <input type="number" id="minutes" placeholder="Minutes" style="width:100%; padding:14px; margin-bottom:15px; border-radius:10px; border:1px solid var(--border); background: var(--card-bg); color: var(--text);">
-        
-        <button class="btn btn-primary" onclick="document.getElementById('upload').click()">Upload from Device</button>
-        <button class="btn btn-drive" id="drive-btn">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" width="20" alt="Drive">
-            Open Google Drive
-        </button>
-        
+    <div id="setup-screen" style="max-width: 400px; margin: 60px auto; padding: 20px; text-align: center;">
+        <h2 style="margin-bottom: 10px;">Quiz Dashboard</h2>
+        <p style="opacity: 0.7; margin-bottom: 30px;">Upload your .txt file to start the assessment.</p>
+        <input type="number" id="minutes" placeholder="Timer (minutes)" style="width:100%; padding:14px; margin-bottom:15px; border-radius:10px; border:1px solid var(--border); background: var(--card-bg); color: var(--text);">
+        <button class="btn btn-primary" style="width: 100%;" onclick="document.getElementById('upload').click()">Upload Quiz File</button>
         <input type="file" id="upload" accept=".txt" class="hidden">
     </div>
 
     <div id="checkpoint-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div style="font-size: 3rem; margin-bottom: 10px;">🎯</div>
-            <h3>Checkpoint</h3>
-            <p style="opacity: 0.8;">20 questions completed. Choose your path:</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-success" id="btn-submit-set">Submit</button>
+            <h3>Set Completed</h3>
+            <p style="opacity: 0.8;">You've finished this section. Choose your next step:</p>
+            <div class="modal-btns">
+                <button class="btn btn-success" id="btn-submit-set">Submit Test</button>
                 <button class="btn btn-primary" id="btn-continue-quiz">Continue</button>
             </div>
+            <button class="btn btn-outline" style="width: 100%; margin-top: 10px;" onclick="document.getElementById('checkpoint-modal').classList.add('hidden')">Cancel</button>
         </div>
     </div>
 
@@ -135,52 +126,43 @@
     <div id="score-screen" class="hidden" style="padding: 15px;">
         <div class="scoreboard">
             <div id="final-percent" style="font-size: 3.5rem; font-weight: 900; color: var(--primary);">0%</div>
-            <p id="score-text" style="font-weight: 600;"></p>
+            <p id="score-text" style="margin-bottom: 30px; font-weight: 600;"></p>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 25px 0;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
                 <div style="background: var(--bg); padding: 15px; border-radius: 15px; border-bottom: 4px solid var(--success);">
                     <div id="stat-correct" style="font-size: 1.5rem; font-weight: 800; color: var(--success);">0</div>
-                    <div style="font-size: 0.8rem;">Correct</div>
+                    <div style="font-size: 0.8rem; opacity: 0.7;">Correct</div>
                 </div>
                 <div style="background: var(--bg); padding: 15px; border-radius: 15px; border-bottom: 4px solid var(--error);">
                     <div id="stat-wrong" style="font-size: 1.5rem; font-weight: 800; color: var(--error);">0</div>
-                    <div style="font-size: 0.8rem;">Wrong</div>
+                    <div style="font-size: 0.8rem; opacity: 0.7;">Wrong</div>
                 </div>
             </div>
 
-            <button class="btn btn-primary" id="review-btn">Review Answers</button>
-            <button class="btn btn-outline" style="margin-top: 10px;" onclick="location.reload()">New Quiz</button>
+            <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" id="review-btn">Review My Answers</button>
+            <button class="btn btn-outline" style="width: 100%;" onclick="location.reload()">New Quiz</button>
         </div>
     </div>
 
     <div id="nav-bar" class="bottom-nav hidden">
         <button class="btn btn-outline" id="prev-btn" style="width: 80px;">Prev</button>
-        <div id="progress" style="flex-grow:1; text-align:center; font-weight:800;"></div>
+        <div id="progress" style="flex-grow:1; text-align:center; font-weight:800; font-size: 1rem;"></div>
         <button class="btn btn-primary" id="next-btn" style="width: 80px;">Next</button>
     </div>
 
     <script>
-        // --- GOOGLE DRIVE CONFIGURATION ---
-        // REPLACE THESE WITH YOUR OWN FROM GOOGLE CLOUD CONSOLE
-        const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
-        const API_KEY = 'YOUR_API_KEY';
-        const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-
         let quizData = [];
         let currentIdx = 0;
         let userAnswers = [];
         let timerInterval;
         let isReviewMode = false;
-        let submittedAtCount = 0;
-        let accessToken = null;
+        let submittedAtCount = 0; // Tracks if user submitted at a checkpoint
 
-        // --- THEME ---
         document.getElementById('theme-toggle').onclick = () => {
             document.body.classList.toggle('dark-mode');
             document.getElementById('theme-toggle').innerText = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
         };
 
-        // --- LOCAL FILE UPLOAD ---
         document.getElementById('upload').onchange = (e) => {
             const reader = new FileReader();
             reader.onload = (ev) => {
@@ -190,69 +172,11 @@
             reader.readAsText(e.target.files[0]);
         };
 
-        // --- GOOGLE DRIVE LOGIC ---
-        const driveBtn = document.getElementById('drive-btn');
-        let tokenClient;
-
-        function gapiLoaded() { gapi.load('picker', () => {}); }
-
-        function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: (response) => {
-                    if (response.error !== undefined) throw (response);
-                    accessToken = response.access_token;
-                    createPicker();
-                },
-            });
-        }
-
-        driveBtn.onclick = () => {
-            if (CLIENT_ID === 'YOUR_CLIENT_ID.apps.googleusercontent.com') {
-                alert("Developer Note: Please update the CLIENT_ID and API_KEY in the script to use Google Drive.");
-                return;
-            }
-            tokenClient.requestAccessToken();
-        };
-
-        function createPicker() {
-            const view = new google.picker.View(google.picker.ViewId.DOCS);
-            view.setMimeTypes("text/plain");
-            const picker = new google.picker.PickerBuilder()
-                .enableFeature(google.picker.Feature.NAV_HIDDEN)
-                .setDeveloperKey(API_KEY)
-                .setAppId(CLIENT_ID)
-                .setOAuthToken(accessToken)
-                .addView(view)
-                .setCallback(pickerCallback)
-                .build();
-            picker.setVisible(true);
-        }
-
-        async function pickerCallback(data) {
-            if (data.action === google.picker.Action.PICKED) {
-                const fileId = data.docs[0].id;
-                const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                const text = await response.text();
-                parseQuestions(text);
-                if (quizData.length > 0) startQuiz();
-            }
-        }
-
-        // Initialize Google Scripts
-        window.onload = () => {
-            gapiLoaded();
-            gisLoaded();
-        };
-
-        // --- PARSER & QUIZ ENGINE ---
         function parseQuestions(text) {
             quizData = [];
             const lines = text.split('\n').map(l => l.trim()).filter(l => l !== "");
             let q = null;
+
             lines.forEach(line => {
                 const questionMatch = line.match(/^(?:Q|Question)\s*\d*[:.\s]*/i);
                 if (questionMatch) {
@@ -268,6 +192,7 @@
                 }
             });
             if (q) quizData.push(q);
+            if (quizData.length === 0) alert("Format Error: Ensure your file uses Q1: and A: format.");
         }
 
         function startQuiz() {
@@ -285,9 +210,10 @@
             currentIdx = idx;
             const q = quizData[idx];
             const content = document.getElementById('quiz-content');
+            
             content.innerHTML = `
-                <div style="color: var(--primary); font-weight:800; margin-bottom:10px; font-size: 0.8rem; text-transform: uppercase;">Question ${idx + 1}</div>
-                <div style="font-size: 1.2rem; margin-bottom:25px; font-weight: 600;">${q.question}</div>
+                <div style="color: var(--primary); font-weight:800; margin-bottom:10px; font-size: 0.85rem; text-transform: uppercase;">Question ${idx + 1}</div>
+                <div style="font-size: 1.25rem; margin-bottom:25px; font-weight: 600; line-height: 1.4;">${q.question}</div>
                 ${q.options.map(opt => `
                     <label class="option-label">
                         <input type="radio" name="opt" value="${opt}" ${userAnswers[idx] === opt ? 'checked' : ''} ${isReviewMode ? 'disabled' : ''}>
@@ -303,7 +229,7 @@
                 feedback.style.background = isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
                 feedback.style.color = isCorrect ? 'var(--success)' : 'var(--error)';
                 feedback.style.borderColor = isCorrect ? 'var(--success)' : 'var(--error)';
-                feedback.innerHTML = `${isCorrect ? '✓ Correct' : '✗ Incorrect'}<br><span style="font-size:0.85rem;">Answer: ${q.answer}</span>`;
+                feedback.innerHTML = `${isCorrect ? '✓ Correct' : '✗ Incorrect'}<br><span style="font-size:0.9rem; opacity:0.8;">Right Answer: ${q.answer}</span>`;
                 content.appendChild(feedback);
             }
 
@@ -333,7 +259,7 @@
         };
 
         document.getElementById('btn-submit-set').onclick = () => {
-            submittedAtCount = currentIdx + 1;
+            submittedAtCount = currentIdx + 1; // Calculate score based on current question
             showScoreBoard();
         };
 
@@ -342,20 +268,25 @@
         function showScoreBoard() {
             clearInterval(timerInterval);
             document.getElementById('checkpoint-modal').classList.add('hidden');
-            let limit = submittedAtCount || quizData.length;
-            let correct = 0;
-            for(let i=0; i<limit; i++) if(userAnswers[i] === quizData[i].answer) correct++;
             
-            const percent = Math.round((correct / limit) * 100);
+            let totalToCalculate = submittedAtCount || quizData.length;
+            let correct = 0;
+            
+            for(let i = 0; i < totalToCalculate; i++) {
+                if(userAnswers[i] === quizData[i].answer) correct++;
+            }
+            
+            const percent = Math.round((correct / totalToCalculate) * 100);
+
             document.getElementById('quiz-area').classList.add('hidden');
             document.getElementById('nav-bar').classList.add('hidden');
             document.getElementById('timer').classList.add('hidden');
             document.getElementById('score-screen').classList.remove('hidden');
 
             document.getElementById('final-percent').innerText = `${percent}%`;
-            document.getElementById('score-text').innerText = `Result: ${correct} / ${limit}`;
+            document.getElementById('score-text').innerText = `You scored ${correct} out of ${totalToCalculate}`;
             document.getElementById('stat-correct').innerText = correct;
-            document.getElementById('stat-wrong').innerText = limit - correct;
+            document.getElementById('stat-wrong').innerText = totalToCalculate - correct;
         }
 
         document.getElementById('review-btn').onclick = () => {
@@ -372,7 +303,10 @@
                 const min = Math.floor(s / 60);
                 const sec = s % 60;
                 document.getElementById('timer').innerText = `${min}:${sec < 10 ? '0' : ''}${sec}`;
-                if (s <= 0) { submittedAtCount = quizData.length; showScoreBoard(); }
+                if (s <= 0) {
+                    submittedAtCount = quizData.length;
+                    showScoreBoard();
+                }
                 s--;
             }, 1000);
         }
